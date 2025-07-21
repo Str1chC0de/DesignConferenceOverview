@@ -1,0 +1,26 @@
+# .github/workflows/update-data.yml
+name: Update Conference Data
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # jeden Tag um 6:00 UTC
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - run: npm install cheerio node-fetch
+      - run: node scrape.mjs
+      - run: |
+          echo "window.designConferences = " > public/js/data.js
+          cat designConferences.json >> public/js/data.js
+      - run: |
+          git config --global user.email "bot@example.com"
+          git config --global user.name "Update Bot"
+          git commit -am "auto: update scraped conference data"
+          git push
