@@ -1,0 +1,40 @@
+name: Scrape and Update Conference Data
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Täglich um 06:00 UTC
+  workflow_dispatch:      # Manuell auslösbar via GitHub UI
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Repository klonen
+        uses: actions/checkout@v4
+
+      - name: 📦 Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 📚 Abhängigkeiten installieren
+        run: npm ci
+
+      - name: 🕷️ Scraper ausführen
+        run: node scraper/scrape.mjs
+
+      - name: 🔄 JSON zu js/data.js umwandeln
+        run: |
+          echo "window.designConferences = " > js/data.js
+          cat designConferences.json >> js/data.js
+
+      - name: ✅ Änderungen committen und pushen
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git add js/data.js
+          git commit -m "auto: update scraped data" || echo "No changes"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
